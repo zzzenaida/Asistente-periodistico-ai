@@ -8,7 +8,7 @@ def get_gemini_client():
         raise ValueError("GEMINI_API_KEY no encontrada.")
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
+        model_name="models/gemini-flash-latest",
         system_instruction=SYSTEM_PROMPT
     )
 
