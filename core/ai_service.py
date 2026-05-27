@@ -1,6 +1,6 @@
 import google.generativeai as genai
 import os
-from prompts import SYSTEM_PROMPT, PROMPT_X, PROMPT_LINKEDIN, PROMPT_TIKTOK
+from core.prompts import SYSTEM_PROMPT, PROMPT_X, PROMPT_LINKEDIN, PROMPT_TIKTOK
 
 def get_gemini_client():
     api_key = os.environ.get("GEMINI_API_KEY")
