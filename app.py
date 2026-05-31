@@ -290,6 +290,28 @@ def _looks_like_api_issue(text: str) -> bool:
     lowered = (text or "").lower()
     return "cuota de gemini" in lowered or "api key de gemini" in lowered or "no se pudo generar" in lowered
 
+def _looks_like_ready_news(text: str) -> bool:
+    return isinstance(text, str) and len(text.strip().split()) >= 40
+
+def _generate_safely(generator, news_text: str, api_key: str) -> str:
+    if not _is_valid_key(api_key):
+        return (
+            "No se pudo generar el contenido porque no hay una API key de Gemini disponible. "
+            "Añade tu propia clave en el panel de configuración de la app."
+        )
+    if not _looks_like_ready_news(news_text):
+        return (
+            "No se pudo generar el contenido porque el texto de la noticia está vacío o es demasiado breve. "
+            "Pega el cuerpo completo de la noticia o prueba otra fuente."
+        )
+    try:
+        result = generator(news_text, api_key)
+    except Exception as error:
+        return f"No se pudo generar el contenido con Gemini. Detalle técnico: {error}"
+    if not isinstance(result, str) or not result.strip():
+        return "No se pudo generar el contenido porque Gemini no devolvió texto. Prueba de nuevo o usa otra API key."
+    return result
+
 if "user_gemini_api_key" not in st.session_state:
     st.session_state.user_gemini_api_key = ""
 
@@ -362,6 +384,7 @@ with tab_url:
                 if "Error" not in texto_extraido[:7]:
                     st.session_state.noticia_procesada = texto_extraido
                     st.success("Texto extraído de la URL correctamente.")
+                    st.caption(f"Texto preparado: {len(texto_extraido.split())} palabras aproximadamente.")
                     with st.expander("Ver texto extraído"):
                         st.write(st.session_state.noticia_procesada)
                 else:
@@ -400,7 +423,7 @@ if st.session_state.noticia_procesada:
     with col1:
         if st.button("🐦 Generar para X (Twitter)", use_container_width=True):
             with st.spinner("Redactando hilo periodístico..."):
-                resultado_x = generate_x_post(st.session_state.noticia_procesada, api_key_to_use)
+                resultado_x = _generate_safely(generate_x_post, st.session_state.noticia_procesada, api_key_to_use)
                 st.session_state.resultado_x = resultado_x
                 if _looks_like_api_issue(resultado_x):
                     st.warning(resultado_x)
@@ -408,7 +431,7 @@ if st.session_state.noticia_procesada:
     with col2:
         if st.button("💼 Generar para LinkedIn", use_container_width=True):
             with st.spinner("Redactando post profesional..."):
-                resultado_linkedin = generate_linkedin_post(st.session_state.noticia_procesada, api_key_to_use)
+                resultado_linkedin = _generate_safely(generate_linkedin_post, st.session_state.noticia_procesada, api_key_to_use)
                 st.session_state.resultado_linkedin = resultado_linkedin
                 if _looks_like_api_issue(resultado_linkedin):
                     st.warning(resultado_linkedin)
@@ -416,7 +439,7 @@ if st.session_state.noticia_procesada:
     with col3:
         if st.button("📱 Generar guion para TikTok", use_container_width=True):
             with st.spinner("Redactando guion audiovisual..."):
-                resultado_tiktok = generate_tiktok_script(st.session_state.noticia_procesada, api_key_to_use)
+                resultado_tiktok = _generate_safely(generate_tiktok_script, st.session_state.noticia_procesada, api_key_to_use)
                 st.session_state.resultado_tiktok = resultado_tiktok
                 if _looks_like_api_issue(resultado_tiktok):
                     st.warning(resultado_tiktok)
