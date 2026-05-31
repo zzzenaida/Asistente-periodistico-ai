@@ -480,3 +480,16 @@ if st.session_state.noticia_procesada:
                 st.text_area("Resultado TikTok:", st.session_state.resultado_tiktok, height=300)
             else:
                 st.info("Presiona 'Generar Guion de TikTok' arriba.")
+
+st.divider()
+st.markdown(
+    """
+    <div style="font-size: 0.9rem; color: #555; line-height: 1.5;">
+        <strong>Aplicación creada por Lena Costas Moldes y Zenaida Pontes Jordá</strong><br>
+        Proyecto de la asignatura Periodismo Automatizado Inteligente<br>
+        Facultad de Ciencias de la Comunicación - Universidade de Santiago de Compostela<br>
+        Curso 2025-2026 | <a href="http://ia.xornalismo.gal/" target="_blank">ia.xornalismo.gal</a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
