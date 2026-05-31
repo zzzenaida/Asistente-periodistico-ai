@@ -1,6 +1,7 @@
 streamlit
 google-generativeai
 beautifulsoup4
+trafilatura
 requests
 PyPDF2
 python-docx
