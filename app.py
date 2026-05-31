@@ -262,9 +262,80 @@ st.markdown(
 st.title("🗞️ Asistente periodístico")
 st.write("Adapta tus noticias a X, LinkedIn y TikTok con rigor informativo. **Cero clickbait, cero invenciones.**")
 
-# Validar API KEY
-if not os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY") == "tu_clave_de_google_aqui":
-    st.warning("⚠️ No se ha detectado una GEMINI_API_KEY válida. Por favor, configura tu archivo .env.")
+def _is_valid_key(value: str) -> bool:
+    return bool(value and value.strip() and value.strip() != "tu_clave_de_google_aqui")
+
+def _get_streamlit_secret_key() -> str:
+    try:
+        return str(st.secrets.get("GEMINI_API_KEY", ""))
+    except Exception:
+        return ""
+
+def _get_app_api_key() -> str:
+    secret_key = _get_streamlit_secret_key()
+    env_key = os.environ.get("GEMINI_API_KEY", "")
+    if _is_valid_key(secret_key):
+        return secret_key.strip()
+    if _is_valid_key(env_key):
+        return env_key.strip()
+    return ""
+
+def _mask_key(value: str) -> str:
+    value = (value or "").strip()
+    if len(value) < 10:
+        return "clave añadida"
+    return f"{value[:4]}...{value[-4:]}"
+
+def _looks_like_api_issue(text: str) -> bool:
+    lowered = (text or "").lower()
+    return "cuota de gemini" in lowered or "api key de gemini" in lowered or "no se pudo generar" in lowered
+
+if "user_gemini_api_key" not in st.session_state:
+    st.session_state.user_gemini_api_key = ""
+
+app_api_key = _get_app_api_key()
+user_api_key = st.session_state.user_gemini_api_key
+api_key_to_use = user_api_key if _is_valid_key(user_api_key) else app_api_key
+
+with st.expander("🔐 API key de Gemini", expanded=not _is_valid_key(api_key_to_use)):
+    if _is_valid_key(app_api_key):
+        st.info("La app está usando automáticamente su API key privada. No tienes que introducir ninguna clave salvo que la cuota se agote o quieras usar la tuya.")
+    else:
+        st.warning("Esta ejecución no tiene una GEMINI_API_KEY privada configurada. En localhost es normal: los Secrets de Streamlit Cloud no viajan con el repositorio. Para probar aquí, añade una clave personal; en la app publicada bastará con configurar la clave en Secrets.")
+
+    st.markdown(
+        """
+Si necesitas usar tu propia clave:
+1. Entra en [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Inicia sesión con tu cuenta de Google.
+3. Pulsa en **Create API key**.
+4. Copia la clave y pégala aquí.
+
+La clave personal se guarda solo durante esta sesión del navegador. No se sube a GitHub ni se escribe en el repositorio.
+        """
+    )
+    api_key_input = st.text_input("Tu GEMINI_API_KEY", type="password", placeholder="Pega aquí tu API key de Gemini")
+    col_key_save, col_key_clear = st.columns(2)
+    with col_key_save:
+        if st.button("Usar mi clave", use_container_width=True):
+            if _is_valid_key(api_key_input):
+                st.session_state.user_gemini_api_key = api_key_input.strip()
+                st.success("Clave personal guardada para esta sesión.")
+                st.rerun()
+            else:
+                st.error("La clave está vacía o no es válida.")
+    with col_key_clear:
+        if st.button("Quitar mi clave", use_container_width=True):
+            st.session_state.user_gemini_api_key = ""
+            st.rerun()
+
+    if _is_valid_key(st.session_state.user_gemini_api_key):
+        st.caption(f"Usando clave personal: {_mask_key(st.session_state.user_gemini_api_key)}")
+    elif _is_valid_key(app_api_key):
+        st.caption("Usando clave privada de la app.")
+
+if not _is_valid_key(api_key_to_use):
+    st.warning("⚠️ No hay una API key de Gemini disponible en esta ejecución. Añade una clave personal para probar en local o configura GEMINI_API_KEY en los Secrets del despliegue.")
 
 # 1. Zona de Ingesta (Pestañas)
 st.subheader("1. Ingresa la noticia original")
@@ -329,20 +400,26 @@ if st.session_state.noticia_procesada:
     with col1:
         if st.button("🐦 Generar para X (Twitter)", use_container_width=True):
             with st.spinner("Redactando hilo periodístico..."):
-                resultado_x = generate_x_post(st.session_state.noticia_procesada)
+                resultado_x = generate_x_post(st.session_state.noticia_procesada, api_key_to_use)
                 st.session_state.resultado_x = resultado_x
+                if _looks_like_api_issue(resultado_x):
+                    st.warning(resultado_x)
 
     with col2:
         if st.button("💼 Generar para LinkedIn", use_container_width=True):
             with st.spinner("Redactando post profesional..."):
-                resultado_linkedin = generate_linkedin_post(st.session_state.noticia_procesada)
+                resultado_linkedin = generate_linkedin_post(st.session_state.noticia_procesada, api_key_to_use)
                 st.session_state.resultado_linkedin = resultado_linkedin
+                if _looks_like_api_issue(resultado_linkedin):
+                    st.warning(resultado_linkedin)
 
     with col3:
         if st.button("📱 Generar guion para TikTok", use_container_width=True):
             with st.spinner("Redactando guion audiovisual..."):
-                resultado_tiktok = generate_tiktok_script(st.session_state.noticia_procesada)
+                resultado_tiktok = generate_tiktok_script(st.session_state.noticia_procesada, api_key_to_use)
                 st.session_state.resultado_tiktok = resultado_tiktok
+                if _looks_like_api_issue(resultado_tiktok):
+                    st.warning(resultado_tiktok)
 
     # 3. Zona de Resultados
     if "resultado_x" in st.session_state or "resultado_linkedin" in st.session_state or "resultado_tiktok" in st.session_state:
@@ -403,3 +480,16 @@ if st.session_state.noticia_procesada:
                 st.text_area("Resultado TikTok:", st.session_state.resultado_tiktok, height=300)
             else:
                 st.info("Presiona 'Generar Guion de TikTok' arriba.")
+
+st.divider()
+st.markdown(
+    """
+    <div style="font-size: 0.9rem; color: #555; line-height: 1.5;">
+        <strong>Aplicación creada por Lena Costas Moldes y Zenaida Pontes Jordá</strong><br>
+        Proyecto de la asignatura Periodismo Automatizado Inteligente<br>
+        Facultad de Ciencias de la Comunicación - Universidade de Santiago de Compostela<br>
+        Curso 2025-2026 | <a href="http://ia.xornalismo.gal/" target="_blank">ia.xornalismo.gal</a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
