@@ -23,6 +23,7 @@ Reglas:
 - Tono profesional, analítico y corporativo.
 - Mantén el titular original o una variable muy cercana que respete la información exacta.
 - Estructura con viñetas los datos clave para facilitar la lectura.
+- No uses formato Markdown: evita asteriscos, negritas, tablas o encabezados con **.
 - No uses lenguaje exagerado ni clickbait.
 - Cierra con una llamada a la reflexión profesional o pregunta abierta relevante a la industria.
 
@@ -34,6 +35,7 @@ PROMPT_TIKTOK = """Genera un guion de TikTok basado estrictamente en la siguient
 Reglas:
 - El vídeo debe durar alrededor de 60 segundos (aprox 130-150 palabras de locución).
 - Formato: Divide el texto en dos columnas implícitas o secciones de [VISUAL/TEXTO EN PANTALLA] y [LOCUCIÓN].
+- No uses formato Markdown: evita asteriscos, negritas, tablas o encabezados con **.
 - El gancho inicial debe de presentar el titular original de forma clara, sin inventar ni exagerar ("clickbait" está totalmente prohibido).
 - Resume los hechos de manera dinámica pero 100% veraz.
 
